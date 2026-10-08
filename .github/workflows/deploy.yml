@@ -1,0 +1,83 @@
+name: Deploy To Ubuntu
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+
+    runs-on: self-hosted
+
+    env:
+      APP_DIR: /home/prafully25/github-workflow-demo
+      PORT: 3000
+
+    steps:
+      - name: Checkout Master
+        uses: actions/checkout@v7
+        with:
+          ref: master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Check Node Version
+        run: |
+          node -v
+          npm -v
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Stop Old Application
+        run: |
+          if [ -f "$APP_DIR/app.pid" ]; then
+            PID=$(cat "$APP_DIR/app.pid")
+
+            if kill -0 "$PID" 2>/dev/null; then
+              kill "$PID"
+              sleep 2
+            fi
+
+            rm -f "$APP_DIR/app.pid"
+          fi
+
+      - name: Copy New Application
+        run: |
+          mkdir -p "$APP_DIR"
+          rm -rf "$APP_DIR/src"
+          cp -r src "$APP_DIR/src"
+          cp package.json package-lock.json "$APP_DIR/"
+          cd "$APP_DIR"
+          npm ci --omit=dev
+
+      - name: Start Application
+        run: |
+          cd "$APP_DIR"
+
+          RUNNER_TRACKING_ID="" nohup node src/server.js > app.log 2>&1 &
+
+          echo $! > app.pid
+
+      - name: Verify Deployment
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent http://localhost:$PORT/health; then
+              echo ""
+              echo "App is healthy"
+              exit 0
+            fi
+            echo "Waiting for app... ($i/10)"
+            sleep 2
+          done
+          echo "Deployment failed. Last logs:"
+          tail -n 30 "$APP_DIR/app.log"
+          exit 1
