@@ -8,7 +8,7 @@ describe("Application API", () => {
             .get("/health");
 
         expect(response.statusCode).toBe(200);
-        expect(response.body.status).toBe("UP");
+        expect(response.body.status).toBe("UP test");
     });
 
     test("add endpoint calculates correctly", async () => {
