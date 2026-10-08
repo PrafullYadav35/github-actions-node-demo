@@ -5,7 +5,7 @@ const app = express();
 
 app.get("/health", (req, res) => {
     res.json({
-        status: "UP test",
+        status: "UP test good",
         service: "jenkins-node-demo",
         version: process.env.APP_VERSION || "dev"
     });
