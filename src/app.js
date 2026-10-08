@@ -6,7 +6,7 @@ const app = express();
 app.get("/health", (req, res) => {
     res.json({
         status: "UP",
-        service: "jenkins-node-demo",
+        service: "github-workflow-node-demo",
         version: process.env.APP_VERSION || "dev"
     });
 });
